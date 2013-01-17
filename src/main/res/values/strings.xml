@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Eris</string>
+    <string name="perm_label">Connecting to Eris service</string>
+    <string name="perm_desc">Allows the application to bind to and manage the Eris service</string>
+</resources>
