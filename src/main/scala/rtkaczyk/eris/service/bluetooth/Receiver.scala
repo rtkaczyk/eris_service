@@ -231,6 +231,7 @@ class Receiver(val Service: ErisService, config: Config) extends Actor with Comm
           Storage ! Msg.StorePackets(packets)
           Service !! PacketsReceived(device, noPackets, proto.allPackets)
         } else {
+          val ack = proto.confirm 
           finish
         }
       }

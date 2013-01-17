@@ -6,7 +6,7 @@ import AndroidKeys._
 object General {
   val settings = Defaults.defaultSettings ++ Seq (
     name := "eris",
-    version := "1.0.0",
+    version := "1.1.0",
     versionCode := 0,
     scalaVersion := "2.9.2",
     platformName in Android := "android-8"

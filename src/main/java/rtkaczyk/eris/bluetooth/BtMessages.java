@@ -11,9 +11,9 @@ public final class BtMessages {
   public interface RequestOrBuilder
       extends com.google.protobuf.MessageOrBuilder {
     
-    // optional fixed64 fr0m = 1;
-    boolean hasFr0M();
-    long getFr0M();
+    // optional fixed64 frm = 1;
+    boolean hasFrm();
+    long getFrm();
     
     // optional fixed64 to = 2;
     boolean hasTo();
@@ -60,14 +60,14 @@ public final class BtMessages {
     }
     
     private int bitField0_;
-    // optional fixed64 fr0m = 1;
-    public static final int FR0M_FIELD_NUMBER = 1;
-    private long fr0M_;
-    public boolean hasFr0M() {
+    // optional fixed64 frm = 1;
+    public static final int FRM_FIELD_NUMBER = 1;
+    private long frm_;
+    public boolean hasFrm() {
       return ((bitField0_ & 0x00000001) == 0x00000001);
     }
-    public long getFr0M() {
-      return fr0M_;
+    public long getFrm() {
+      return frm_;
     }
     
     // optional fixed64 to = 2;
@@ -111,7 +111,7 @@ public final class BtMessages {
     }
     
     private void initFields() {
-      fr0M_ = 0L;
+      frm_ = 0L;
       to_ = 0L;
       limit_ = 0;
       batch_ = 0;
@@ -130,7 +130,7 @@ public final class BtMessages {
                         throws java.io.IOException {
       getSerializedSize();
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        output.writeFixed64(1, fr0M_);
+        output.writeFixed64(1, frm_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         output.writeFixed64(2, to_);
@@ -155,7 +155,7 @@ public final class BtMessages {
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeFixed64Size(1, fr0M_);
+          .computeFixed64Size(1, frm_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
@@ -297,7 +297,7 @@ public final class BtMessages {
       
       public Builder clear() {
         super.clear();
-        fr0M_ = 0L;
+        frm_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000001);
         to_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000002);
@@ -348,7 +348,7 @@ public final class BtMessages {
         if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
           to_bitField0_ |= 0x00000001;
         }
-        result.fr0M_ = fr0M_;
+        result.frm_ = frm_;
         if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
           to_bitField0_ |= 0x00000002;
         }
@@ -381,8 +381,8 @@ public final class BtMessages {
       
       public Builder mergeFrom(rtkaczyk.eris.bluetooth.BtMessages.Request other) {
         if (other == rtkaczyk.eris.bluetooth.BtMessages.Request.getDefaultInstance()) return this;
-        if (other.hasFr0M()) {
-          setFr0M(other.getFr0M());
+        if (other.hasFrm()) {
+          setFrm(other.getFrm());
         }
         if (other.hasTo()) {
           setTo(other.getTo());
@@ -429,7 +429,7 @@ public final class BtMessages {
             }
             case 9: {
               bitField0_ |= 0x00000001;
-              fr0M_ = input.readFixed64();
+              frm_ = input.readFixed64();
               break;
             }
             case 17: {
@@ -458,23 +458,23 @@ public final class BtMessages {
       
       private int bitField0_;
       
-      // optional fixed64 fr0m = 1;
-      private long fr0M_ ;
-      public boolean hasFr0M() {
+      // optional fixed64 frm = 1;
+      private long frm_ ;
+      public boolean hasFrm() {
         return ((bitField0_ & 0x00000001) == 0x00000001);
       }
-      public long getFr0M() {
-        return fr0M_;
+      public long getFrm() {
+        return frm_;
       }
-      public Builder setFr0M(long value) {
+      public Builder setFrm(long value) {
         bitField0_ |= 0x00000001;
-        fr0M_ = value;
+        frm_ = value;
         onChanged();
         return this;
       }
-      public Builder clearFr0M() {
+      public Builder clearFrm() {
         bitField0_ = (bitField0_ & ~0x00000001);
-        fr0M_ = 0L;
+        frm_ = 0L;
         onChanged();
         return this;
       }
@@ -577,9 +577,9 @@ public final class BtMessages {
   public interface ResponseOrBuilder
       extends com.google.protobuf.MessageOrBuilder {
     
-    // optional fixed64 fr0m = 1;
-    boolean hasFr0M();
-    long getFr0M();
+    // optional fixed64 frm = 1;
+    boolean hasFrm();
+    long getFrm();
     
     // optional fixed64 to = 2;
     boolean hasTo();
@@ -633,14 +633,14 @@ public final class BtMessages {
     }
     
     private int bitField0_;
-    // optional fixed64 fr0m = 1;
-    public static final int FR0M_FIELD_NUMBER = 1;
-    private long fr0M_;
-    public boolean hasFr0M() {
+    // optional fixed64 frm = 1;
+    public static final int FRM_FIELD_NUMBER = 1;
+    private long frm_;
+    public boolean hasFrm() {
       return ((bitField0_ & 0x00000001) == 0x00000001);
     }
-    public long getFr0M() {
-      return fr0M_;
+    public long getFrm() {
+      return frm_;
     }
     
     // optional fixed64 to = 2;
@@ -698,7 +698,7 @@ public final class BtMessages {
     }
     
     private void initFields() {
-      fr0M_ = 0L;
+      frm_ = 0L;
       to_ = 0L;
       packets_ = java.util.Collections.emptyList();
       noPackets_ = 0;
@@ -729,7 +729,7 @@ public final class BtMessages {
                         throws java.io.IOException {
       getSerializedSize();
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        output.writeFixed64(1, fr0M_);
+        output.writeFixed64(1, frm_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         output.writeFixed64(2, to_);
@@ -754,7 +754,7 @@ public final class BtMessages {
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeFixed64Size(1, fr0M_);
+          .computeFixed64Size(1, frm_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
@@ -898,7 +898,7 @@ public final class BtMessages {
       
       public Builder clear() {
         super.clear();
-        fr0M_ = 0L;
+        frm_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000001);
         to_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000002);
@@ -957,7 +957,7 @@ public final class BtMessages {
         if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
           to_bitField0_ |= 0x00000001;
         }
-        result.fr0M_ = fr0M_;
+        result.frm_ = frm_;
         if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
           to_bitField0_ |= 0x00000002;
         }
@@ -999,8 +999,8 @@ public final class BtMessages {
       
       public Builder mergeFrom(rtkaczyk.eris.bluetooth.BtMessages.Response other) {
         if (other == rtkaczyk.eris.bluetooth.BtMessages.Response.getDefaultInstance()) return this;
-        if (other.hasFr0M()) {
-          setFr0M(other.getFr0M());
+        if (other.hasFrm()) {
+          setFrm(other.getFrm());
         }
         if (other.hasTo()) {
           setTo(other.getTo());
@@ -1082,7 +1082,7 @@ public final class BtMessages {
             }
             case 9: {
               bitField0_ |= 0x00000001;
-              fr0M_ = input.readFixed64();
+              frm_ = input.readFixed64();
               break;
             }
             case 17: {
@@ -1116,23 +1116,23 @@ public final class BtMessages {
       
       private int bitField0_;
       
-      // optional fixed64 fr0m = 1;
-      private long fr0M_ ;
-      public boolean hasFr0M() {
+      // optional fixed64 frm = 1;
+      private long frm_ ;
+      public boolean hasFrm() {
         return ((bitField0_ & 0x00000001) == 0x00000001);
       }
-      public long getFr0M() {
-        return fr0M_;
+      public long getFrm() {
+        return frm_;
       }
-      public Builder setFr0M(long value) {
+      public Builder setFrm(long value) {
         bitField0_ |= 0x00000001;
-        fr0M_ = value;
+        frm_ = value;
         onChanged();
         return this;
       }
-      public Builder clearFr0M() {
+      public Builder clearFrm() {
         bitField0_ = (bitField0_ & ~0x00000001);
-        fr0M_ = 0L;
+        frm_ = 0L;
         onChanged();
         return this;
       }
@@ -2422,19 +2422,19 @@ public final class BtMessages {
       descriptor;
   static {
     java.lang.String[] descriptorData = {
-      "\n\010bt.proto\022\027rtkaczyk.eris.bluetooth\"U\n\007R" +
-      "equest\022\014\n\004fr0m\030\001 \001(\006\022\n\n\002to\030\002 \001(\006\022\r\n\005limi" +
-      "t\030\003 \001(\005\022\r\n\005batch\030\004 \001(\005\022\022\n\004full\030\005 \001(\010:\004tr" +
-      "ue\"\230\001\n\010Response\022\014\n\004fr0m\030\001 \001(\006\022\n\n\002to\030\002 \001(" +
-      "\006\0220\n\007packets\030\003 \003(\0132\037.rtkaczyk.eris.bluet" +
-      "ooth.Packet\022\021\n\tnoPackets\030\004 \001(\005\022-\n\005error\030" +
-      "\005 \001(\0132\036.rtkaczyk.eris.bluetooth.Error\")\n" +
-      "\006Packet\022\021\n\ttimestamp\030\001 \001(\006\022\014\n\004data\030\002 \002(\014" +
-      "\"\226\001\n\005Error\0221\n\004code\030\001 \002(\0162#.rtkaczyk.eris" +
-      ".bluetooth.Error.Code\022\023\n\013description\030\002 \001",
-      "(\t\"E\n\004Code\022\024\n\020CONNECTION_ERROR\020\000\022\023\n\017INVA" +
-      "LID_REQUEST\020\001\022\022\n\016INTERNAL_ERROR\020\002B\014B\nBtM" +
-      "essages"
+      "\n\010bt.proto\022\027rtkaczyk.eris.bluetooth\"T\n\007R" +
+      "equest\022\013\n\003frm\030\001 \001(\006\022\n\n\002to\030\002 \001(\006\022\r\n\005limit" +
+      "\030\003 \001(\005\022\r\n\005batch\030\004 \001(\005\022\022\n\004full\030\005 \001(\010:\004tru" +
+      "e\"\227\001\n\010Response\022\013\n\003frm\030\001 \001(\006\022\n\n\002to\030\002 \001(\006\022" +
+      "0\n\007packets\030\003 \003(\0132\037.rtkaczyk.eris.bluetoo" +
+      "th.Packet\022\021\n\tnoPackets\030\004 \001(\005\022-\n\005error\030\005 " +
+      "\001(\0132\036.rtkaczyk.eris.bluetooth.Error\")\n\006P" +
+      "acket\022\021\n\ttimestamp\030\001 \001(\006\022\014\n\004data\030\002 \002(\014\"\226" +
+      "\001\n\005Error\0221\n\004code\030\001 \002(\0162#.rtkaczyk.eris.b" +
+      "luetooth.Error.Code\022\023\n\013description\030\002 \001(\t",
+      "\"E\n\004Code\022\024\n\020CONNECTION_ERROR\020\000\022\023\n\017INVALI" +
+      "D_REQUEST\020\001\022\022\n\016INTERNAL_ERROR\020\002B\014B\nBtMes" +
+      "sages"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
@@ -2446,7 +2446,7 @@ public final class BtMessages {
           internal_static_rtkaczyk_eris_bluetooth_Request_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_rtkaczyk_eris_bluetooth_Request_descriptor,
-              new java.lang.String[] { "Fr0M", "To", "Limit", "Batch", "Full", },
+              new java.lang.String[] { "Frm", "To", "Limit", "Batch", "Full", },
               rtkaczyk.eris.bluetooth.BtMessages.Request.class,
               rtkaczyk.eris.bluetooth.BtMessages.Request.Builder.class);
           internal_static_rtkaczyk_eris_bluetooth_Response_descriptor =
@@ -2454,7 +2454,7 @@ public final class BtMessages {
           internal_static_rtkaczyk_eris_bluetooth_Response_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_rtkaczyk_eris_bluetooth_Response_descriptor,
-              new java.lang.String[] { "Fr0M", "To", "Packets", "NoPackets", "Error", },
+              new java.lang.String[] { "Frm", "To", "Packets", "NoPackets", "Error", },
               rtkaczyk.eris.bluetooth.BtMessages.Response.class,
               rtkaczyk.eris.bluetooth.BtMessages.Response.Builder.class);
           internal_static_rtkaczyk_eris_bluetooth_Packet_descriptor =
