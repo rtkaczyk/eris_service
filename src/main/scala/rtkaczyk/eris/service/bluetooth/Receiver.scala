@@ -9,13 +9,13 @@ import rtkaczyk.eris.api.Common
 import rtkaczyk.eris.service.Msg
 import rtkaczyk.eris.service.ErisService
 import rtkaczyk.eris.api.Packet
-import scala.util.control.Exception.ignoring
 import rtkaczyk.eris.api.DeviceId
 import rtkaczyk.eris.api.Events._
 import rtkaczyk.eris.service.Config
+import rtkaczyk.eris.service.SafeActor
 
 
-class Receiver(val Service: ErisService, config: Config) extends Actor with Common {
+class Receiver(val Service: ErisService, config: Config) extends SafeActor with Common {
 
   def this(Service: ErisService) = this(Service, Config.empty)
   
@@ -32,17 +32,18 @@ class Receiver(val Service: ErisService, config: Config) extends Actor with Comm
     var batchSize = 0
     var full = true
   }
+  
+  def channel = Cfg.channel
+  def full = Cfg.full
 
   private var devicesToConnect = List[BluetoothDevice]()
   private var connection = Connection()
-  private var connectionCanceled = false
   
   
-  
-  def act() {
+  def act {
     Log.d(TAG, "Receiver started")
-    while (true) {
-      receive {
+    loop {
+      react {
         case Msg.Reconfigure(conf) =>
           onReconfigure(conf)
         
@@ -55,13 +56,11 @@ class Receiver(val Service: ErisService, config: Config) extends Actor with Comm
         case Msg.ReceiverConnect(device, from, to, limit) =>
           onConnectRequest(device, from, to, limit)
           
-        case Msg.ReceiverDisconnect =>
-          onDisconnectRequest
+        case Msg.ReceiverDisconnect(all) =>
+          onDisconnectRequest(all)
         
         case Msg.Kill => 
           onKill
-          
-        case _ =>
       }
     }
   }
@@ -90,16 +89,12 @@ class Receiver(val Service: ErisService, config: Config) extends Actor with Comm
   
   private def onContinue {
     Log.d(TAG, "onContinue, devicesToConnect: %d" format devicesToConnect.size)
-    if (connection.inProgress) {
-      Log.d(TAG, "Connection in progress -> continue")
-      connection.continue
-    } 
-    else devicesToConnect match {
+    devicesToConnect match {
       case dev :: devs => {
         Log.d(TAG, "Next device: %s" format dev.getName)
         devicesToConnect = devs
-        val request = Request(from = DeviceCache getFrom dev, batch = Cfg.batchSize)
-        connection = Connection(dev, request)
+        val request = Connection.Request(from = DeviceCache getFrom dev, batch = Cfg.batchSize)
+        connection = Connection(this, dev, request)
         connection.start
       }
       case Nil => {
@@ -107,17 +102,6 @@ class Receiver(val Service: ErisService, config: Config) extends Actor with Comm
         Agent ! Msg.AllConnectionsFinished
       }
     }  
-      
-      
-//      if (foundDevices.hasNext) {
-//        Log.d(TAG, "foundDevices hasNext")
-//        val device = foundDevices.next
-//        val request = Request(from = DeviceCache getFrom device, batch = Cfg.batchSize)
-//        connection = Connection(device, request)
-//      } else {
-//        Log.d(TAG, "allConnectionsFinished")
-//        Agent ! Msg.AllConnectionsFinished
-//      }
   }
   
   private def onConnectRequest(device: DeviceId, from: Long, to: Long, limit: Int) {
@@ -127,8 +111,8 @@ class Receiver(val Service: ErisService, config: Config) extends Actor with Comm
         if (!connection.inProgress) {
           Log.i(TAG, "Accepted connection request (%s, %d, %d, %d)" 
               format (device, from, to, limit))
-          val request = Request(from, to, limit, Cfg.batchSize)
-          connection = new RealConnection(dev, request)
+          val request = Connection.Request(from, to, limit, Cfg.batchSize)
+          connection = Connection(this, dev, request)
         } else {
           Log.e(TAG, "Connection request rejected: adapter busy")
           Service !! ConnectionFailed(device, "Adapter busy")
@@ -142,131 +126,18 @@ class Receiver(val Service: ErisService, config: Config) extends Actor with Comm
     }
   }
   
-  private def onDisconnectRequest {
+  private def onDisconnectRequest(all: Boolean) {
     Log.d(TAG, "onDisconnectRequest")
-    if (connection.inProgress) {
-      Log.d(TAG, "Disconnecting on request")
-      connection.finish
+    connection.cancel
+    if (all)
+      devicesToConnect = Nil
+    else
       Receiver ! Msg.ReceiverContinue
-    }
   }
   
   private def onKill {
-    if (connection.inProgress)
-      connection.finish
+    connection.cancel
     Log.d(TAG, "Receiver stopped")
     exit
   }
-  
-  
-  
-  private case class Request (
-    from: Long = 0,
-    to: Long = 0,
-    limit: Int = 0,
-    batch: Int = 0
-  )
-  
-  private trait Connection {
-    def inProgress = false
-    def start = {}
-    def continue {}
-    def finish {}
-  }
-  
-  private object Connection {
-    def apply(): Connection = new FakeConnection
-    def apply(device: BluetoothDevice, req: Request): Connection =
-      new RealConnection(device, req)
-  }
-  
-  private class FakeConnection extends Connection
-  
-  private class RealConnection(device: BluetoothDevice, req: Request) extends Connection {
-    private var socket: BluetoothSocket = null
-    private var noPackets = 0
-    private var proto: Protocol = null
-    private var done = true
-    
-    override def start {
-      done = false
-      try {
-        Log.i(TAG, "Connecting to [%s]" format DeviceId(device))
-        val m = device.getClass getMethod ("createInsecureRfcommSocket", classOf[Int])
-        socket = (m invoke (device, Integer valueOf Cfg.channel)).asInstanceOf[BluetoothSocket]
-            socket.connect
-            proto = new Protocol(socket, Cfg.full)
-        
-        Log.d(TAG, "Sending request")
-        proto requestPackets(req.from, req.to, req.limit, req.batch)
-        
-      }
-      catch {
-        case e: IOException if (e.getMessage == "Connection refused") => {
-          Log.e(TAG, "Error while connecting to Bluetooth device [%s]:\n %s" 
-              format (DeviceId(device), e.toString))
-              Service !! ConnectionRefused(device)
-              close
-        }
-        case e: Exception => {
-          Log.e(TAG, "Error while connecting to Bluetooth device [%s]" 
-              format DeviceId(device), e)
-              onError(e.toString)
-        }
-      } 
-      finally {
-        Receiver.onContinue
-      }
-    }
-    
-    override def inProgress = !done
-    
-    override def continue {
-      Log.d(TAG, "Connection continue")
-      try {
-        val packets = proto.getPackets
-        if (!packets.isEmpty) {
-          Log.d(TAG, "Received %d packets" format packets.size)
-          noPackets += packets.size
-          Storage ! Msg.StorePackets(packets)
-          Service !! PacketsReceived(device, noPackets, proto.allPackets)
-        } else {
-          val ack = proto.confirm 
-          finish
-        }
-      }
-      catch {
-        case e: Exception =>
-          Log.e(TAG, "Error while receiving from Bluetooth device [%s]" 
-              format DeviceId(device), e)
-          onError(e.toString)
-          finish
-      }
-      finally {
-        DeviceCache update (device, proto.to)
-        Receiver.onContinue
-      }
-    }
-    
-    override def finish {
-      close
-      Log.i(TAG, "Connection to [%s] finished. Received %d packets" format 
-          (DeviceId(device), noPackets))
-      Service !! ConnectionFinished(device, noPackets, proto.from, proto.to)
-    }
-    
-    private def close {
-      if (!done) {
-        ignoring(classOf[Exception]) {
-          socket.close
-        }
-        done = true
-      }
-    }
-    
-    private def onError(cause: String) {
-      close
-      Service !! ConnectionFailed(device, cause)
-    }
-  } 
 }

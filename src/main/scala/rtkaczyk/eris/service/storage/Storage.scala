@@ -6,14 +6,15 @@ import rtkaczyk.eris.service.Msg
 import android.util.Log
 import rtkaczyk.eris.api.Common
 import rtkaczyk.eris.api.Packet
+import rtkaczyk.eris.service.SafeActor
 
-class Storage(service: ErisService) extends Actor with Common {
+class Storage(service: ErisService) extends SafeActor with Common {
   var store = List[Packet]()
   
-  override def act() {
+  override def act {
     Log.d(TAG, "Storage started")
-    while (true) {
-      receive {
+    loop {
+      react {
         case Msg.StorePackets(packets) => 
           onStorePackets(packets)
           
@@ -22,8 +23,6 @@ class Storage(service: ErisService) extends Actor with Common {
           
         case Msg.Kill => 
           onKill
-          
-        case _ =>
       }
     }
   }

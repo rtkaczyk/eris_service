@@ -3,6 +3,7 @@ package rtkaczyk.eris.service.bluetooth
 import rtkaczyk.eris.api.Common
 import rtkaczyk.eris.api.DeviceId
 import android.bluetooth.BluetoothDevice
+import android.util.Log
 
 
 case class DeviceInfo (
@@ -26,9 +27,10 @@ object DeviceCache extends Common {
     }
   
   def update(device: DeviceId, to: Long) {
+    //Log.w(TAG, "Updating device [%s], to: %d" format (device, to))
     cache get device match {
-      case Some(DeviceInfo(dev, _, _)) => 
-        cache += device -> DeviceInfo(dev, to, now)
+      case Some(DeviceInfo(dev, t, _)) => 
+        cache += device -> DeviceInfo(dev, if (to > t) to else t, now)
         
       case None =>
     }

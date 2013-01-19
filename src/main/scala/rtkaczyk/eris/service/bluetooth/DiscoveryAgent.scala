@@ -19,8 +19,9 @@ import rtkaczyk.eris.api.Events._
 import rtkaczyk.eris.api.DeviceId
 import rtkaczyk.eris.service.Config
 import scala.util.control.Exception.ignoring
+import rtkaczyk.eris.service.SafeActor
 
-class DiscoveryAgent(val Service: ErisService, config: Config) extends Actor with Common {
+class DiscoveryAgent(val Service: ErisService, config: Config) extends SafeActor with Common {
   
   def this(Service: ErisService) = this(Service, Config.empty)
 
@@ -59,7 +60,6 @@ class DiscoveryAgent(val Service: ErisService, config: Config) extends Actor wit
         
         case ACTION_DISCOVERY_FINISHED => {
           Agent ! Msg.DiscoveryFinished
-          //Service !! DiscoveryFinished
         }
         
         case _ =>
@@ -83,14 +83,14 @@ class DiscoveryAgent(val Service: ErisService, config: Config) extends Actor wit
 
   
 
-  def act() {
+  def act {
     Log.d(TAG, "DiscoveryAgent started")
     discoveryReceiver.init
     if (Cfg.auto)
       this ! Msg.StartDiscovery
     
-    while (true) {
-      receive {
+    loop {
+      react {
         case Msg.Reconfigure(conf) =>
           onReconfigure(conf)
         
@@ -111,8 +111,6 @@ class DiscoveryAgent(val Service: ErisService, config: Config) extends Actor wit
 
         case Msg.Kill => 
           onKill
-        
-        case _ =>
       }
     }
   }
@@ -149,7 +147,6 @@ class DiscoveryAgent(val Service: ErisService, config: Config) extends Actor wit
     Log.d(TAG, "onStopDiscovery")
     if (bt.isDiscovering) {
       bt.cancelDiscovery
-      this ! Msg.DiscoveryFinished
     }
   }
   

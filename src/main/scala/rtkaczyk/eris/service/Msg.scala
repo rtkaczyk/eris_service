@@ -16,7 +16,7 @@ object Msg {
   
   case object AllConnectionsFinished
   case class  ReceiverConnect(device: DeviceId, from: Long = 0, to: Long = 0, limit: Int = 0)
-  case object ReceiverDisconnect
+  case class  ReceiverDisconnect(all: Boolean)
   case object ReceiverContinue
   
   case class  StorePackets(packets: List[Packet])

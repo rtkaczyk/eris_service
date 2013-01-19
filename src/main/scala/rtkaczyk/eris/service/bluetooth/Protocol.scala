@@ -10,14 +10,14 @@ import scala.collection.JavaConversions._
 import scala.collection.mutable.Buffer
 import scala.math.{min, max}
 import scala.annotation.tailrec
+import rtkaczyk.eris.api.DeviceId
 
 class Protocol(socket: BluetoothSocket, full: Boolean) extends Common {
 
   private val in = socket.getInputStream
   private val out = socket.getOutputStream
 
-  val address = socket.getRemoteDevice.getAddress
-  val name = socket.getRemoteDevice.getName
+  val deviceId = DeviceId(socket.getRemoteDevice).id
   
   private var all = 0
   def allPackets = all
@@ -64,7 +64,7 @@ class Protocol(socket: BluetoothSocket, full: Boolean) extends Common {
       } yield {
         if (full)
           updateTimerange(timestamp)
-        new Packet(name, address, timestamp, data.toByteArray)
+        new Packet(deviceId, timestamp, data.toByteArray)
       }
     } 
     else {
@@ -106,21 +106,6 @@ class Protocol(socket: BluetoothSocket, full: Boolean) extends Common {
     builder.build
   }
   
-  private def writeLenImp(n: Int) {
-    if (n > (1 << 28) - 1) 
-      throw new IllegalArgumentException("Request too long")
-    
-    var i = 0
-    var msb = 0x80
-    while (msb != 0) {
-      var byte = ((n >> (7 * i)) & 0x7F)
-      msb = if (n >> (7 * (i + 1)) == 0) 0 else 0x80
-      byte |= msb
-      i += 1
-      out write byte
-    }
-  }
-  
   private def writeLen(n: Int) {
     require(n >= 0)
     
@@ -135,25 +120,6 @@ class Protocol(socket: BluetoothSocket, full: Boolean) extends Common {
     }
     
     out write evalLen(Nil, n) 
-  }
-  
-  private def readLenImp(): Int = {
-    Log.w(TAG, "readLen, available: %d" format in.available)
-    var done = false
-    var n = 0
-    var i = 0
-    while (!done) {
-      val byte = in.read
-      if (byte == -1)
-        throw new ConnectionError("Unexpected end of data stream")
-      n += (byte & 0x7F) << (7 * i)
-      i += 1
-      if ((byte & 0x80) == 0) 
-        done = true
-      if (i > 4)
-        throw new InvalidResponse("Response too long")
-    }
-    n
   }
   
   private def readLen(): Int = {
@@ -181,7 +147,7 @@ class Protocol(socket: BluetoothSocket, full: Boolean) extends Common {
 
 
   private def readNBytes(N: Int) = {
-    Log.w(TAG, "readNBytes, available: %d" format in.available)
+    //Log.w(TAG, "readNBytes, available: %d" format in.available)
 
     val bytes = new Array[Byte](N)
     
