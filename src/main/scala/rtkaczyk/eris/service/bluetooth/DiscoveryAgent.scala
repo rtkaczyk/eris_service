@@ -5,6 +5,7 @@ import scala.collection.JavaConversions._
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothAdapter.ACTION_DISCOVERY_FINISHED
 import android.bluetooth.BluetoothAdapter.ACTION_DISCOVERY_STARTED
+import android.bluetooth.BluetoothAdapter.ACTION_STATE_CHANGED
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothDevice.ACTION_FOUND
 import android.content.BroadcastReceiver
@@ -21,16 +22,19 @@ import rtkaczyk.eris.service.Config
 import scala.util.control.Exception.ignoring
 import rtkaczyk.eris.service.SafeActor
 
-class DiscoveryAgent(val Service: ErisService, config: Config) extends SafeActor with Common {
+class DiscoveryAgent(val service: ErisService) extends SafeActor {
   
-  def this(Service: ErisService) = this(Service, Config.empty)
-
-  lazy val Receiver = Service.receiver
-  lazy val Agent = this
+  lazy val receiveR = service.receiver
+  lazy val storage = service.storage
+  lazy val discovery = this
+  
   val bt = BluetoothAdapter.getDefaultAdapter
-  if (bt == null) Log.wtf(TAG, "Couldn't get Bluetooth Adapter")
-  configure(config)
-      
+  if (bt == null) 
+    Log.wtf(TAG, "Couldn't get Bluetooth Adapter")
+  else if (!bt.isEnabled) {
+    Log.w(TAG, "Bluetooth is disabled. Enabling")
+    bt.enable
+  }
   
   private var foundDevices = List[BluetoothDevice]()
   private var waitingForConnection = false
@@ -50,17 +54,28 @@ class DiscoveryAgent(val Service: ErisService, config: Config) extends SafeActor
         case ACTION_FOUND => {
           val device: BluetoothDevice = intent getParcelableExtra BluetoothDevice.EXTRA_DEVICE
           Log.d(TAG, "Device discovered: [%s]" format DeviceId(device))
-          Agent ! Msg.DeviceFound(device)
+          discovery ! Msg.DeviceFound(device)
         }
         
         case ACTION_DISCOVERY_STARTED => {
           Log.i(TAG, "Discovery started")
-          Service !! DiscoveryStarted
+          service !! DiscoveryStarted
         }
         
         case ACTION_DISCOVERY_FINISHED => {
-          Agent ! Msg.DiscoveryFinished
+          discovery ! Msg.DiscoveryFinished
         }
+        
+        case ACTION_STATE_CHANGED => {
+          if (bt.isEnabled) {
+            Log.i(TAG, "Bluetooth adapter turned on")
+            if (Cfg.auto)
+              discovery ! Msg.StartDiscovery
+          }
+          else
+            Log.wtf(TAG, "Bluetooth has been disabled")
+        }
+          
         
         case _ =>
       }
@@ -71,12 +86,12 @@ class DiscoveryAgent(val Service: ErisService, config: Config) extends SafeActor
       filter addAction ACTION_FOUND
       filter addAction ACTION_DISCOVERY_STARTED
       filter addAction ACTION_DISCOVERY_FINISHED
-      Service registerReceiver (this, filter)
+      service registerReceiver (this, filter)
     }
     
     def close {
       ignoring(classOf[Exception]) {
-        Service unregisterReceiver this
+        service unregisterReceiver this
       }
     }
   }
@@ -86,13 +101,15 @@ class DiscoveryAgent(val Service: ErisService, config: Config) extends SafeActor
   def act {
     Log.d(TAG, "DiscoveryAgent started")
     discoveryReceiver.init
-    if (Cfg.auto)
-      this ! Msg.StartDiscovery
+    storage ! Msg.LoadCache
     
     loop {
       react {
         case Msg.Reconfigure(conf) =>
           onReconfigure(conf)
+          
+        case Msg.CacheLoaded(cache) =>
+          onCacheLoaded(cache)
         
         case Msg.StartDiscovery => 
           onStartDiscovery
@@ -115,6 +132,8 @@ class DiscoveryAgent(val Service: ErisService, config: Config) extends SafeActor
     }
   }
   
+  def inProgress = bt.isDiscovering
+  
   def configure(conf: Config) {
     Cfg.auto = conf.getBool("auto", true)
     Cfg.full = conf.getBool("full", false)
@@ -132,11 +151,18 @@ class DiscoveryAgent(val Service: ErisService, config: Config) extends SafeActor
       this ! Msg.StartDiscovery
   }
   
+  private def onCacheLoaded(cache: Map[DeviceId, DeviceInfo]) {
+    Log.d(TAG, "Device cache loaded")
+    DeviceCache load cache
+    if (Cfg.auto)
+      this ! Msg.StartDiscovery
+  }
+  
   private def onStartDiscovery {
     Log.d(TAG, "onStartDiscovery")
-    if (bt.isDiscovering || Receiver.connectionInProgress || waitingForConnection) {
+    if (bt.isDiscovering || receiveR.inProgress || waitingForConnection) {
       Log.w(TAG, "Can't start discovery. Adapter in use")
-      Service !! DiscoveryRefused
+      service !! DiscoveryRefused
     } else {
       foundDevices = Nil
       bt.startDiscovery
@@ -162,30 +188,31 @@ class DiscoveryAgent(val Service: ErisService, config: Config) extends SafeActor
       else {
         onStopDiscovery
         Log.d(TAG, "Sending %d devices to Receiver" format foundDevices.size)
-        Receiver ! Msg.DevicesFound(List(device))
+        receiveR ! Msg.DevicesFound(List(device))
         waitingForConnection = true
       }
-      Service !! DeviceFound(DeviceId(device))
+      service !! DeviceFound(DeviceId(device))
     }
   }
   
   private def onDiscoveryFinished {
     Log.i(TAG, "Discovery finished")
-    Service !! DiscoveryFinished
+    service !! DiscoveryFinished
     
     if (Cfg.full && !foundDevices.isEmpty) {
       Log.d(TAG, "Sending %d devices to Receiver" format foundDevices.size)
-      Receiver ! Msg.DevicesFound(foundDevices.reverse)
+      receiveR ! Msg.DevicesFound(foundDevices.reverse)
       waitingForConnection = true
     }
     
-    if (Cfg.auto && !Receiver.connectionInProgress && !waitingForConnection)
+    if (Cfg.auto && !receiveR.inProgress && !waitingForConnection)
       this ! Msg.StartDiscovery
   }
   
   private def onAllConnectionsFinished {
     Log.d(TAG, "onAllConnectionsFinished")
-    if (Cfg.auto && !Receiver.connectionInProgress) {
+    DeviceCache persist storage
+    if (Cfg.auto && !receiveR.inProgress) {
       waitingForConnection = false
       this ! Msg.StartDiscovery
     }

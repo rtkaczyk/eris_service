@@ -1,21 +1,20 @@
 package rtkaczyk.eris.service.bluetooth
 
 import android.bluetooth.BluetoothSocket
-import java.io.IOException
-import rtkaczyk.eris.api.Common
 import android.util.Log
 import rtkaczyk.eris.api.Packet
-import rtkaczyk.eris.bluetooth.BtMessages.{Request, Response, Error}
+import rtkaczyk.eris.service.bluetooth.BtMessages.{Request, Response, Error}
 import scala.collection.JavaConversions._
-import scala.collection.mutable.Buffer
 import scala.math.{min, max}
-import scala.annotation.tailrec
 import rtkaczyk.eris.api.DeviceId
+import rtkaczyk.eris.service.networking.Exceptions._
+import rtkaczyk.eris.service.networking.Messaging
+import rtkaczyk.eris.service.networking.TOInputStream
 
-class Protocol(socket: BluetoothSocket, full: Boolean) extends Common {
+class Protocol(socket: BluetoothSocket, full: Boolean, timeout: Long) extends Messaging {
 
-  private val in = socket.getInputStream
-  private val out = socket.getOutputStream
+  val in = new TOInputStream(socket.getInputStream, timeout)
+  val out = socket.getOutputStream
 
   val deviceId = DeviceId(socket.getRemoteDevice).id
   
@@ -42,7 +41,7 @@ class Protocol(socket: BluetoothSocket, full: Boolean) extends Common {
   }
   
   def getPackets(): List[Packet] = {
-    val n = readLen()
+    val n = readLen
     Log.d(TAG, "Response is %d bytes long" format n)
     
     if (n > 0) {
@@ -104,69 +103,5 @@ class Protocol(socket: BluetoothSocket, full: Boolean) extends Common {
       builder setFull full
       
     builder.build
-  }
-  
-  private def writeLen(n: Int) {
-    require(n >= 0)
-    
-    @tailrec
-    def evalLen(bytes: List[Int], n: Int): Array[Byte] = {
-      val byte = n & 0x7F
-      val rest = n >> 7
-      if (rest > 0)
-        evalLen((byte | 0x80) :: bytes, rest)
-      else 
-        (byte :: bytes).reverse.toArray map { _.toByte }
-    }
-    
-    out write evalLen(Nil, n) 
-  }
-  
-  private def readLen(): Int = {
-    @tailrec
-    def getBytes(bytes: List[Int], s: Stream[Int]): List[Int] = {
-      if (s.head == -1)
-        throw new ConnectionError("Unexpected end of data stream")
-      if ((s.head & 0x80) > 0) 
-        getBytes(s.head :: bytes, s.tail)
-      else {
-        if (bytes.size >= 4)
-          throw new InvalidResponse("Response too long")
-        s.head :: bytes
-      }
-    }
-    
-    @tailrec
-    def evalLen(bytes: List[Int], n: Int): Int = bytes match {
-      case b :: bs => evalLen(bs, ((b & 0x7F) << (bs.size * 7)) | n)
-      case Nil => n
-    }
-    
-    evalLen(getBytes(Nil, Stream continually in.read), 0)
-  }
-
-
-  private def readNBytes(N: Int) = {
-    //Log.w(TAG, "readNBytes, available: %d" format in.available)
-
-    val bytes = new Array[Byte](N)
-    
-    @tailrec
-    def read(n: Int): Int = {
-      val rd = in.read(bytes, N - n, n)
-      if (rd == -1)
-        N - n
-      else if (rd < n)
-        read(n - rd)
-      else
-        N
-    }
-    
-    val actual = read(N)
-    if (actual < N)
-      throw new ConnectionError("Unexpected end of data stream: " +
-          "actual: %d, expected: %d" format (actual, N))
-
-    bytes
   }
 }

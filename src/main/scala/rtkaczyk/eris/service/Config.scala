@@ -84,14 +84,26 @@ object Config extends Config {
   
   val nonNegativeInt = (s: String) => {
     val i = s.toInt
-    require(i >= 0, "Non-negative Int required. Was [%d]" format i)
+    require(i >= 0, "Non-negative Int required. Was [%s]" format s)
+    i
+  }
+  
+  val positiveInt = (s: String) => {
+    val i = s.toInt
+    require(i > 0, "Positive Int required. Was [%s]" format s)
+    i
+  }
+  
+  val positiveLong = (s: String) => {
+    val i = s.toLong
+    require(i > 0, "Positive Long required. Was [%s]" format s)
     i
   }
   
   val channel = (s: String) => {
     val c = s.toInt
     require(1 to 30 contains c, 
-        "RFCOMM channel should be in range [1, 30]. Was [%d]" format c)
+        "RFCOMM channel should be in range [1, 30]. Was [%s]" format s)
     c
   }
   
@@ -101,6 +113,23 @@ object Config extends Config {
     val id = DeviceId(s)
     require(id.isValid, "Invalid bluetooth address [%s]" format s)
     id.address
+  }
+  
+  val inetAddress = (s: String) => {
+    val str = s.trim
+    val (addr, port) = str splitAt (str lastIndexOf ':')
+    val p = port.drop(1).toInt
+    require(1 to 65535 contains p, "Invalid internet address [%s]" format s)
+    val a = if ((addr startsWith "[") && (addr endsWith "]")) 
+      addr.stripPrefix("[").stripSuffix("]") else addr
+      
+    (a, p)
+  }
+  
+  val positivePercent = (s: String) => {
+    val p = s.toDouble
+    require((p > 0.0) && (p <= 100.0), "Required positive percent. Was [%s]" format s)
+    p
   }
 }
 

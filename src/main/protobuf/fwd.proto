@@ -1,0 +1,27 @@
+package rtkaczyk.eris.service.forwarding;
+
+option java_outer_classname = "FwdMessages";
+
+message Request {
+  repeated Packet packets = 1;
+}
+
+message Response {
+  optional Error error = 1;
+}
+
+message Packet {
+  required string device = 1;
+  optional fixed64 timestamp = 2;
+  required bytes data = 3;
+}
+
+message Error {
+  enum Code {
+    CONNECTION_ERROR = 0;
+    INVALID_REQUEST = 1;
+    INTERNAL_ERROR = 2;
+  }
+  required Code code = 1;
+  optional string description = 2;
+}

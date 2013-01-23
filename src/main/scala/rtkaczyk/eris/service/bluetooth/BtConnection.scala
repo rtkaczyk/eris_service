@@ -3,40 +3,28 @@ package rtkaczyk.eris.service.bluetooth
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
 import android.util.Log
-import rtkaczyk.eris.api.Common
 import java.io.IOException
 import rtkaczyk.eris.api.DeviceId
 import rtkaczyk.eris.api.Events._
 import scala.util.control.Exception.ignoring
 import rtkaczyk.eris.service.Msg
-import scala.actors.Actor
+import rtkaczyk.eris.service.networking.Connection
 
 
-
-trait Connection extends Actor {
-  def inProgress = false
-  def cancel {}
-}
-
-object Connection {
-  private object FakeConnection extends Connection { def act {} }
+object BtConnection {
   case class Request (
     from: Long = 0,
     to: Long = 0,
     limit: Int = 0,
     batch: Int = 0
   )
-  
-  def apply(): Connection = FakeConnection
-  def apply(receiver: Receiver, device: BluetoothDevice, req: Request): Connection =
-    new BtConnection(receiver, device, req)
 }
 
-
-class BtConnection(val Receiver: Receiver, device: BluetoothDevice, req: Connection.Request) 
-extends Connection with Common {
-  val Service = Receiver.Service
-  val Storage = Receiver.Storage
+class BtConnection(val receiveR: Receiver, device: BluetoothDevice, req: BtConnection.Request) 
+extends Connection {
+  
+  val service = receiveR.service
+  val storage = receiveR.storage
   
   private var socket: BluetoothSocket = null
   private var noPackets = 0
@@ -57,10 +45,10 @@ extends Connection with Common {
     try {
       Log.i(TAG, "Connecting to [%s]" format DeviceId(device))
       val m = device.getClass getMethod ("createInsecureRfcommSocket", classOf[Int])
-      socket = (m invoke (device, Integer valueOf Receiver.channel)).asInstanceOf[BluetoothSocket]
+      socket = (m invoke (device, Integer valueOf receiveR.channel)).asInstanceOf[BluetoothSocket]
       if (inProgress) {
         socket.connect
-        proto = new Protocol(socket, Receiver.full)
+        proto = new Protocol(socket, receiveR.full, receiveR.timeout)
         
         Log.d(TAG, "Sending request")
         proto requestPackets(req.from, req.to, req.limit, req.batch)
@@ -74,7 +62,7 @@ extends Connection with Common {
       case e: IOException if (e.getMessage == "Connection refused") => {
         Log.e(TAG, "Error while connecting to Bluetooth device [%s]:\n %s" 
             format (DeviceId(device), e.toString))
-            Service !! ConnectionRefused(device)
+            service !! ReceivingRefused(device)
             close
       }
       case e: Exception => {
@@ -84,7 +72,9 @@ extends Connection with Common {
       }
     } 
     finally {
-      Receiver ! Msg.ReceiverContinue
+      receiveR ! Msg.ReceiverContinue
+      if (noPackets > 0)
+        storage ! Msg.FinishStoring(device)
     }
   }
   
@@ -96,8 +86,8 @@ extends Connection with Common {
       if (!packets.isEmpty) {
         Log.d(TAG, "Received %d packets" format packets.size)
         noPackets += packets.size
-        Storage ! Msg.StorePackets(packets)
-        Service !! PacketsReceived(device, noPackets, proto.allPackets)
+        storage ! Msg.StorePackets(packets)
+        service !! PacketsReceived(device, noPackets, proto.allPackets)
       } 
       else {
         val ack = proto.confirm
@@ -120,12 +110,12 @@ extends Connection with Common {
     close
     Log.i(TAG, "Connection to [%s] finished. Received %d packets" format 
         (DeviceId(device), noPackets))
-    Service !! ConnectionFinished(device, noPackets, proto.from, proto.to)
+    service !! ReceivingFinished(device, noPackets, proto.from, proto.to)
   }
   
   private def onError(cause: String) {
     close
-    Service !! ConnectionFailed(device, cause)
+    service !! ReceivingFailed(device, cause)
   }
   
   private def close {

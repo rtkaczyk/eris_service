@@ -13,27 +13,25 @@ import rtkaczyk.eris.api.DeviceId
 import rtkaczyk.eris.api.Events._
 import rtkaczyk.eris.service.Config
 import rtkaczyk.eris.service.SafeActor
+import rtkaczyk.eris.service.networking.Connection
 
 
-class Receiver(val Service: ErisService, config: Config) extends SafeActor with Common {
+class Receiver(val service: ErisService) extends SafeActor {
 
-  def this(Service: ErisService) = this(Service, Config.empty)
-  
-  lazy val Agent = Service.discoveryAgent
-  lazy val Storage = Service.storage
-  lazy val Receiver = this
-  configure(config)
-  
-  
+  lazy val discovery = service.discovery
+  lazy val storage = service.storage
+  lazy val receiveR = this
   
   private object Cfg {
     var auto = true
     var channel = 2
+    var timeout = 5000L
     var batchSize = 0
     var full = true
   }
   
   def channel = Cfg.channel
+  def timeout = Cfg.timeout
   def full = Cfg.full
 
   private var devicesToConnect = List[BluetoothDevice]()
@@ -65,12 +63,13 @@ class Receiver(val Service: ErisService, config: Config) extends SafeActor with 
     }
   }
   
-  def connectionInProgress = connection.inProgress
+  def inProgress = connection.inProgress
   
   def configure(conf: Config) {
     Cfg.auto = conf.getBool("auto", true)
     Cfg.channel = conf.get("channel", Config.channel, 2)
-    Cfg.batchSize = conf.get("batch-size", Config.nonNegativeInt, 0)
+    Cfg.timeout = conf.get("timeout", Config.positiveLong, 5000L)
+    Cfg.batchSize = conf.get("batch", Config.nonNegativeInt, 0)
     Cfg.full = conf.getBool("full", true)
   }
   
@@ -93,13 +92,13 @@ class Receiver(val Service: ErisService, config: Config) extends SafeActor with 
       case dev :: devs => {
         Log.d(TAG, "Next device: %s" format dev.getName)
         devicesToConnect = devs
-        val request = Connection.Request(from = DeviceCache getFrom dev, batch = Cfg.batchSize)
+        val request = BtConnection.Request(from = DeviceCache getFrom dev, batch = Cfg.batchSize)
         connection = Connection(this, dev, request)
         connection.start
       }
       case Nil => {
         Log.d(TAG, "allConnectionsFinished")
-        Agent ! Msg.AllConnectionsFinished
+        discovery ! Msg.AllConnectionsFinished
       }
     }  
   }
@@ -111,17 +110,17 @@ class Receiver(val Service: ErisService, config: Config) extends SafeActor with 
         if (!connection.inProgress) {
           Log.i(TAG, "Accepted connection request (%s, %d, %d, %d)" 
               format (device, from, to, limit))
-          val request = Connection.Request(from, to, limit, Cfg.batchSize)
+          val request = BtConnection.Request(from, to, limit, Cfg.batchSize)
           connection = Connection(this, dev, request)
         } else {
           Log.e(TAG, "Connection request rejected: adapter busy")
-          Service !! ConnectionFailed(device, "Adapter busy")
+          service !! ReceivingFailed(device, "Adapter busy")
         }
       }
       
       case None => {
         Log.e(TAG, "Connection request rejected: Invalid device [%s]" format device)
-        Service !! ConnectionFailed(device, "Invalid device")
+        service !! ReceivingFailed(device, "Invalid device")
       }
     }
   }
@@ -132,7 +131,7 @@ class Receiver(val Service: ErisService, config: Config) extends SafeActor with 
     if (all)
       devicesToConnect = Nil
     else
-      Receiver ! Msg.ReceiverContinue
+      receiveR ! Msg.ReceiverContinue
   }
   
   private def onKill {

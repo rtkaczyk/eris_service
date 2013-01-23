@@ -1,4 +1,4 @@
-package rtkaczyk.eris.bluetooth;
+package rtkaczyk.eris.service.bluetooth;
 
 option java_outer_classname = "BtMessages";
 

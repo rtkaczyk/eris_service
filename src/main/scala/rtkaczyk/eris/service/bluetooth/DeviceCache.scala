@@ -4,10 +4,12 @@ import rtkaczyk.eris.api.Common
 import rtkaczyk.eris.api.DeviceId
 import android.bluetooth.BluetoothDevice
 import android.util.Log
+import rtkaczyk.eris.service.storage.Storage
+import rtkaczyk.eris.service.Msg
 
 
 case class DeviceInfo (
-  device: BluetoothDevice,
+  device: Option[BluetoothDevice],
   to: Long,
   tau: Long
 )
@@ -27,7 +29,6 @@ object DeviceCache extends Common {
     }
   
   def update(device: DeviceId, to: Long) {
-    //Log.w(TAG, "Updating device [%s], to: %d" format (device, to))
     cache get device match {
       case Some(DeviceInfo(dev, t, _)) => 
         cache += device -> DeviceInfo(dev, if (to > t) to else t, now)
@@ -40,10 +41,10 @@ object DeviceCache extends Common {
     val id = DeviceId(device)
     cache += id -> (cache get id match {
       case Some(DeviceInfo(_, to, tau)) =>
-        DeviceInfo(device, to, tau)
+        DeviceInfo(Some(device), to, tau)
         
       case None =>
-        DeviceInfo(device, 0, 0)
+        DeviceInfo(Some(device), 0, 0)
     })
   }
   
@@ -56,8 +57,16 @@ object DeviceCache extends Common {
   
   def getDevice(device: DeviceId): Option[BluetoothDevice] = {
     cache get device match {
-      case Some(DeviceInfo(dev, _, _)) if dev != null => Some(dev)
+      case Some(DeviceInfo(dev @ Some(_), _, _)) => dev
       case _ => None
     }
+  }
+  
+  def load(map: Map[DeviceId, DeviceInfo]) {
+    cache = map
+  }
+  
+  def persist(storage: Storage) {
+    storage ! Msg.PersistCache(cache)
   }
 }

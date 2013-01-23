@@ -6,7 +6,7 @@ import AndroidKeys._
 object General {
   val settings = Defaults.defaultSettings ++ Seq (
     name := "eris",
-    version := "1.2.0",
+    version := "1.3.0",
     versionCode := 0,
     scalaVersion := "2.9.2",
     platformName in Android := "android-8"
@@ -23,7 +23,7 @@ object General {
     AndroidManifestGenerator.settings ++
     Seq (
       libraryDependencies += "com.google.protobuf" % "protobuf-java" % "2.4.1",
-      libraryDependencies += "rtkaczyk.eris" % "api" % "1.0.1"
+      libraryDependencies += "rtkaczyk.eris" % "api" % "1.1.0"
     )
 }
 
