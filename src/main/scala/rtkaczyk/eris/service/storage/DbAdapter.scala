@@ -142,8 +142,6 @@ with Common {
         val cv = new ContentValues
         cv put (FWD, Integer valueOf 0)
         db.update(PACKETS, cv, null, null)
-        
-        db.execSQL("VACUUM")
       }
   }
   
